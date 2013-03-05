@@ -3,3 +3,6 @@
 *.iml
 *.ipr
 drivers/
+geb-repo/
+.gradle/
+build/
