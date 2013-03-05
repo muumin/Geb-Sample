@@ -1,0 +1,10 @@
+{
+	"folders":
+	[
+		{
+			"path": "/Users/muu/IdeaProjects/Geb-Test",
+			"file_exclude_patterns": [".tags*",".project",".buildpath", "*.tpl.php","*.sublime-*", "*.iml", "*.ipr", "*.iws"],
+			"folder_exclude_patterns": ["img","templates_c", ".settings", ".metadata", ".idea", "build", "out", ".gradle"]
+		}
+	]
+}

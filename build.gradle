@@ -1,0 +1,122 @@
+import static groovyx.net.http.ContentType.BINARY
+import groovyx.net.http.HTTPBuilder
+import static groovyx.net.http.Method.GET
+import org.apache.commons.io.FileUtils
+
+apply plugin: "eclipse"
+apply plugin: "idea"
+apply plugin: "groovy"
+apply plugin: "java"
+apply plugin: "maven"
+
+defaultTasks 'clean', 'downloadDrivers', 'test'
+
+ant.condition(property: "os", value: "windows") { os(family: "windows") }
+ant.condition(property: "os", value: "unix") { os(family: "unix") }
+
+def drivers = [
+        [
+                os: "unix",
+                browser: "chrome",
+                url: "http://chromedriver.googlecode.com/files/chromedriver_mac_26.0.1383.0.zip",
+                zip: "drivers/chrome/chromedriver_mac_26.0.1383.0.zip",
+        ],
+        [
+                os: "windows",
+                browser: "chrome",
+                url: "https://chromedriver.googlecode.com/files/chromedriver_win_26.0.1383.0.zip",
+                zip: "drivers/chrome/chromedriver_win_26.0.1383.0.zip",
+        ],
+        [
+                os: "windows",
+                browser: "ie",
+                url: "http://selenium.googlecode.com/files/IEDriverServer_Win32_2.30.1.zip",
+                zip: "drivers/ie/IEDriverServer_Win32_2.30.1.zip",
+        ]
+]
+
+def enc = 'utf-8'
+
+[
+        compileJava,
+        compileGroovy,
+        compileTestJava,
+        compileTestGroovy
+].each { it.options.encoding = enc }
+[
+        compileGroovy,
+        compileTestGroovy
+].each { it.groovyOptions.encoding = enc }
+
+buildscript {
+    repositories {
+        mavenCentral()
+        mavenRepo url: "http://repository.codehaus.org"
+    }
+    dependencies {
+        classpath 'commons-io:commons-io:2.4'
+        classpath 'org.codehaus.groovy.modules.http-builder:http-builder:0.5.2'
+    }
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+//    mavenRepo urls:['http://localhost/maven', 'http://localhost/mvn']
+}
+
+def seleniumVersion = '2.30.0'
+dependencies {
+    groovy 'org.codehaus.groovy:groovy-all:1.8.8'
+    testCompile 'org.spockframework:spock-core:0.6-groovy-1.8'
+    testCompile 'org.codehaus.geb:geb-core:0.7.2'
+    testCompile 'org.codehaus.geb:geb-spock:0.7.2'
+
+    testCompile "org.seleniumhq.selenium:selenium-chrome-driver:${seleniumVersion}"
+    testCompile "org.seleniumhq.selenium:selenium-htmlunit-driver:${seleniumVersion}"
+    testCompile "org.seleniumhq.selenium:selenium-firefox-driver:${seleniumVersion}"
+    testCompile "org.seleniumhq.selenium:selenium-ie-driver:${seleniumVersion}"
+    testRuntime "org.seleniumhq.selenium:selenium-support:${seleniumVersion}"
+}
+
+// Seleniumドライバーのダウンロード/解凍
+task downloadDrivers << {
+    if (new File("drivers").exists()) return
+    println "download driver......."
+
+    drivers.each {
+        if (ant.properties.os == it.os) {
+            def zipFile = new File(it.zip)
+            mkdir(zipFile.getParent())
+            new HTTPBuilder().request(it.url,
+                    GET, BINARY) { req ->
+                response.success = { resp, zip ->
+                    FileUtils.copyInputStreamToFile(zip as InputStream, zipFile)
+                }
+            }
+            ant.unzip(src: zipFile.absolutePath, dest: zipFile.getParent())
+//            zipFile.delete()
+        }
+        // TODO:他のドライバも権限必要だろうから後でスマートな方法考える
+        if (it.os == 'unix' && it.browser == 'chrome')
+            ant.chmod(file:'drivers/chrome/chromedriver', perm:'755')
+    }
+}
+
+task ie << {
+    test.systemProperty 'geb.env', 'ie'
+}
+
+task firefox << {
+    test.systemProperty 'geb.env', 'firefox'
+}
+
+task chrome << {
+    tasks.test.systemProperty 'geb.env', 'chrome'
+}
+
+task wrapper(type: Wrapper) { gradleVersion = '1.4' }
+
+eclipse {
+    pathVariables GRADLE_REPO: file(System.properties['user.home'] + '/.gradle/cache')
+}

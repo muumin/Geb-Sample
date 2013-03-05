@@ -1,0 +1,18 @@
+Geb写経/動作確認
+
+Java5以上/Gitがインストールされている状態で以下を実行することでライブラリやドライバーのDLを行います。
+HtmlUnitでテストを実施してGeb-repoディレクトリ配下にテスト結果としてHTMLを保存します。
+        git clone https://github.com/muumin/Geb-Sample.git
+        gradlew
+
+ブラウザ指定(downloadDrivers タスクの実行が一度は必要だが引数無しのgradlewを実行していれば不要)
+HTMLの他に画面のスナップショットを保存します。
+        gradlew ie test
+        gradlew firefox test
+        gradlew chrome test
+
+Firefoxは最新版だと動かない。
+動作確認バージョンは16。
+
+参考サイト:
+http://hideoku.wordpress.com/2012/10/30/geb-%E3%81%AF%E3%81%98%E3%82%81%E3%81%BE%E3%81%97%E3%81%9F/
