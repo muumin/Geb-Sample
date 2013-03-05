@@ -6,3 +6,4 @@ drivers/
 geb-repo/
 .gradle/
 build/
+chromedriver.log
