@@ -79,7 +79,6 @@ dependencies {
     testRuntime "org.seleniumhq.selenium:selenium-support:${seleniumVersion}"
 }
 
-// Seleniumドライバーのダウンロード/解凍
 task downloadDrivers << {
     if (new File("drivers").exists()) return
     println "download driver......."
