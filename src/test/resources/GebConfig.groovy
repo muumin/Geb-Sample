@@ -1,4 +1,4 @@
-import geb.report.ScreenshotAndPageSourceReporter
+import geb.report.ScreenshotReporter
 import org.openqa.selenium.chrome.ChromeDriver
 import org.openqa.selenium.firefox.FirefoxDriver
 import org.openqa.selenium.htmlunit.HtmlUnitDriver
@@ -18,7 +18,8 @@ driver = {
     driver
 }
 
-// -Dgeb.env=firefox を指定された場合
+// vm option.
+// -Dgeb.env=firefox
 environments {
     firefox {
         reportsDir = "geb-repo/firefox"
@@ -41,8 +42,8 @@ environments {
     }
 }
 
-// レポート日本語文字化け対応
-reporter = new ScreenshotAndPageSourceReporter() {
+// avoid report file name being garbled.
+reporter = new ScreenshotReporter() {
     @Override
     protected escapeFileName(String name) {
         // name.replaceAll("[^\\w\\s-]", "_")

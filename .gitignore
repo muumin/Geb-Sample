@@ -5,5 +5,7 @@
 drivers/
 geb-repo/
 .gradle/
+.idea/
 build/
 chromedriver.log
+classes/
