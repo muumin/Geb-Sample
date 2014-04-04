@@ -6,33 +6,44 @@ import org.openqa.selenium.remote.DesiredCapabilities
 import org.openqa.selenium.ie.InternetExplorerDriver
 import org.openqa.selenium.ie.InternetExplorerDriverService
 
-reportsDir = "geb-repo/htmlunit"
 if (System.getProperty("os.name") ==~ /^Mac.*/) {
     System.setProperty('webdriver.chrome.driver', 'drivers/chrome/chromedriver')
 } else if (System.getProperty("os.name") ==~ /^Windows.*/) {
     System.setProperty('webdriver.chrome.driver', 'drivers/chrome/chromedriver.exe')
 }
+
+// -Dgeb.build.reportsDir=geb-repo/htmlunit
+//reportsDir = "geb-repo/htmlunit"
+
 driver = {
-    def driver = new HtmlUnitDriver()
-    driver.javascriptEnabled = true
+    def driver = new HtmlUnitDriver(true)
+    driver.getWebClient().getOptions().setThrowExceptionOnScriptError(false)
+//    driver.getWebClient().getOptions().setThrowExceptionOnFailingStatusCode(true);
+//    driver.getWebClient().getOptions().setCssEnabled(false);
+//    driver.getWebClient().getOptions().setJavaScriptEnabled(true);
+//    driver.getWebClient().getOptions().setTimeout(50000);
     driver
 }
 
 // vm option.
 // -Dgeb.env=firefox
 environments {
+    htmlunit {
+        driver = {
+            def driver = new HtmlUnitDriver(true)
+            driver.getWebClient().getOptions().setThrowExceptionOnScriptError(false)
+            driver
+        }
+    }
     firefox {
-        reportsDir = "geb-repo/firefox"
         driver = { new FirefoxDriver() }
     }
 
     chrome {
-        reportsDir = "geb-repo/chrome"
         driver = { new ChromeDriver() }
     }
     ie {
         driver = {
-            reportsDir = "geb-repo/ie"
             def ieCapabilities = DesiredCapabilities.internetExplorer()
             ieCapabilities.setCapability(InternetExplorerDriver.INTRODUCE_FLAKINESS_BY_IGNORING_SECURITY_DOMAINS, true)
             InternetExplorerDriverService.Builder ies = new InternetExplorerDriverService.Builder()

@@ -6,37 +6,18 @@ import org.apache.commons.io.FileUtils
 apply plugin: "eclipse"
 apply plugin: "idea"
 apply plugin: "groovy"
-apply plugin: "java"
-apply plugin: "maven"
 
-defaultTasks 'clean', 'downloadDrivers', 'test'
+defaultTasks 'clean', 'htmlunitTest'
 
 ant.condition(property: "os", value: "windows") { os(family: "windows") }
 ant.condition(property: "os", value: "unix") { os(family: "unix") }
 
-def drivers = [
-        [
-                os: "unix",
-                browser: "chrome",
-                url: "http://chromedriver.storage.googleapis.com/2.9/chromedriver_mac32.zip",
-                zip: "drivers/chrome/chromedriver_mac32.zip",
-        ],
-        [
-                os: "windows",
-                browser: "chrome",
-                url: "http://chromedriver.storage.googleapis.com/2.9/chromedriver_win32.zip",
-                zip: "drivers/chrome/chromedriver_win32.zip",
-        ],
-        [
-                os: "windows",
-                browser: "ie",
-                url: "http://selenium.googlecode.com/files/IEDriverServer_Win32_2.30.1.zip",
-                zip: "drivers/ie/IEDriverServer_Win32_2.30.1.zip",
-        ]
-]
+ext.drivers = ["firefox", "chrome", "htmlunit"]
+if (ant.properties.os == "windows") {
+    ext.drivers =  ["firefox", "chrome", "ie", "htmlunit"]
+}
 
 def enc = 'utf-8'
-
 [
         compileJava,
         compileGroovy,
@@ -48,74 +29,82 @@ def enc = 'utf-8'
         compileTestGroovy,
 ].each { it.groovyOptions.encoding = enc }
 
+repositories {
+    jcenter()
+}
+
 buildscript {
     repositories {
-        mavenCentral()
-        mavenRepo url: "http://repository.codehaus.org"
+        jcenter()
     }
     dependencies {
         classpath 'commons-io:commons-io:2.4'
         classpath 'org.codehaus.groovy.modules.http-builder:http-builder:0.7.1'
     }
 }
-
-repositories {
-    mavenLocal()
-    mavenCentral()
-}
-
-def seleniumVersion = '2.41.0'
 dependencies {
-    groovy 'org.codehaus.groovy:groovy-all:2.2.2'
+    def seleniumVersion = '2.41.0'
+    def gebVersion = "0.9.2"
+    testCompile 'org.codehaus.groovy:groovy-all:2.2.2'
     testCompile 'org.spockframework:spock-core:0.7-groovy-2.0'
-    testCompile 'org.gebish:geb-core:0.9.2'
-    testCompile 'org.gebish:geb-spock:0.9.2'
+    testCompile "org.gebish:geb-core:$gebVersion"
+    testCompile "org.gebish:geb-spock:$gebVersion"
 
-
-    testCompile "org.seleniumhq.selenium:selenium-chrome-driver:${seleniumVersion}"
-    testCompile "org.seleniumhq.selenium:selenium-htmlunit-driver:${seleniumVersion}"
-    testCompile "org.seleniumhq.selenium:selenium-firefox-driver:${seleniumVersion}"
-    testCompile "org.seleniumhq.selenium:selenium-ie-driver:${seleniumVersion}"
-    testRuntime "org.seleniumhq.selenium:selenium-support:${seleniumVersion}"
-}
-
-task downloadDrivers << {
-    if (new File("drivers").exists()) return
-    println "download driver......."
-
-    drivers.each {
-        if (ant.properties.os == it.os) {
-            def zipFile = new File(it.zip)
-            mkdir(zipFile.getParent())
-            new HTTPBuilder().request(it.url,
-                    GET, BINARY) { req ->
-                response.success = { resp, zip ->
-                    FileUtils.copyInputStreamToFile(zip as InputStream, zipFile)
-                }
-            }
-            ant.unzip(src: zipFile.absolutePath, dest: zipFile.getParent())
-//            zipFile.delete()
-        }
-        // TODO:他のドライバも権限必要だろうから後でスマートな方法考える
-        if (it.os == 'unix' && it.browser == 'chrome')
-            ant.chmod(file:'drivers/chrome/chromedriver', perm:'755')
+    testRuntime "org.seleniumhq.selenium:selenium-support:$seleniumVersion"
+    // Drivers
+    drivers.each { driver ->
+        testCompile "org.seleniumhq.selenium:selenium-$driver-driver:$seleniumVersion"
     }
 }
 
-task ie << {
-    test.systemProperty 'geb.env', 'ie'
+drivers.each { driver ->
+    task "${driver}Test"(type: Test) {
+        downloadDrivers()
+        reports {
+            html.destination = reporting.file("$name/tests")
+            junitXml.destination = file("$buildDir/test-results/$name")
+        }
+
+        systemProperty "geb.build.reportsDir", reporting.file("$name/geb")
+        systemProperty "geb.env", driver
+
+        // If you wanted to set the baseUrl in your build…
+        // systemProperty "geb.build.baseUrl", "http://myapp.com"
+    }
 }
 
-task firefox << {
-    test.systemProperty 'geb.env', 'firefox'
-}
-
-task chrome << {
-    tasks.test.systemProperty 'geb.env', 'chrome'
+test {
+    dependsOn drivers.collect { tasks["${it}Test"] }
+    enabled = false
 }
 
 task wrapper(type: Wrapper) { gradleVersion = '1.11' }
 
 eclipse {
     pathVariables GRADLE_REPO: file(System.properties['user.home'] + '/.gradle/cache')
+}
+
+def downloadDrivers() {
+    if (ant.properties.os != "windows" || new File("drivers").exists()) return
+
+    [
+        [
+                url: "http://chromedriver.storage.googleapis.com/2.9/chromedriver_win32.zip",
+                zip: "drivers/chrome/chromedriver_win32.zip",
+        ],
+        [
+                url: "http://selenium.googlecode.com/files/IEDriverServer_Win32_2.30.1.zip",
+                zip: "drivers/ie/IEDriverServer_Win32_2.30.1.zip",
+        ]
+    ].each {
+        def zipFile = new File(it.zip)
+        mkdir(zipFile.getParent())
+        new HTTPBuilder().request(it.url,
+                GET, BINARY) { req ->
+            response.success = { resp, zip ->
+                FileUtils.copyInputStreamToFile(zip as InputStream, zipFile)
+            }
+        }
+        ant.unzip(src: zipFile.absolutePath, dest: zipFile.getParent())
+    }
 }
