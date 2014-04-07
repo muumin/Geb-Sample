@@ -108,5 +108,8 @@ def downloadDrivers() {
             }
         }
         ant.unzip(src: zipFile.absolutePath, dest: zipFile.getParent())
+
+        if (it.os == 'unix' && it.browser == 'chrome')
+            ant.chmod(file:'drivers/chrome/chromedriver', perm:'755')
     }
 }
