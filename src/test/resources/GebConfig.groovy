@@ -12,8 +12,10 @@ if (System.getProperty("os.name") ==~ /^Mac.*/) {
     System.setProperty('webdriver.chrome.driver', 'drivers/chrome/chromedriver.exe')
 }
 
-// -Dgeb.build.reportsDir=geb-repo/htmlunit
-//reportsDir = "geb-repo/htmlunit"
+// -Dgeb.build.reportsDir=geb-repo
+if (!System.getProperty("geb.build.reportsDir")) {
+    reportsDir = "geb-repo"
+}
 
 driver = {
     def driver = new HtmlUnitDriver(true)

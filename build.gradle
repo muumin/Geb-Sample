@@ -12,10 +12,7 @@ defaultTasks 'clean', 'htmlunitTest'
 ant.condition(property: "os", value: "windows") { os(family: "windows") }
 ant.condition(property: "os", value: "unix") { os(family: "unix") }
 
-ext.drivers = ["firefox", "chrome", "htmlunit"]
-if (ant.properties.os == "windows") {
-    ext.drivers =  ["firefox", "chrome", "ie", "htmlunit"]
-}
+ext.drivers = ["firefox", "chrome", "ie", "htmlunit"]
 
 def enc = 'utf-8'
 [
@@ -74,6 +71,7 @@ drivers.each { driver ->
 }
 
 test {
+    if (ant.properties.os != "windows"){drivers.minus("ie")}
     dependsOn drivers.collect { tasks["${it}Test"] }
     enabled = false
 }
@@ -85,12 +83,16 @@ eclipse {
 }
 
 def downloadDrivers() {
-    if (ant.properties.os != "windows" || new File("drivers").exists()) return
+    if ( new File("drivers").exists()) return
 
     [
         [
                 url: "http://chromedriver.storage.googleapis.com/2.9/chromedriver_win32.zip",
                 zip: "drivers/chrome/chromedriver_win32.zip",
+        ],
+        [
+                url: "http://chromedriver.storage.googleapis.com/2.9/chromedriver_mac32.zip",
+                zip: "drivers/chrome/chromedriver_mac32.zip",
         ],
         [
                 url: "http://selenium.googlecode.com/files/IEDriverServer_Win32_2.30.1.zip",
