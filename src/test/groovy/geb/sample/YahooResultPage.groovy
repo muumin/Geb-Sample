@@ -3,7 +3,7 @@ package geb.sample
 import geb.Page
 
 class YahooResultPage extends Page {
-    static at = { title.endsWith 'Yahoo!検索' }
+    static at = { waitFor {title.endsWith 'Yahoo!検索'} }
     static content = {
         // 検索部分
         search { module YahooSearchModule, buttonValue: '検索' }
@@ -14,6 +14,5 @@ class YahooResultPage extends Page {
         resultLink { i -> results[i].find("a") }
         // 最初の検索結果のリンク部分
         firstResultLink { resultLink(0) }
-        firstResultLinkClick(wait: true) {firstResultLink.click()}
     }
 }

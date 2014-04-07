@@ -71,8 +71,9 @@ drivers.each { driver ->
 }
 
 test {
-    if (ant.properties.os != "windows"){drivers.minus("ie")}
-    dependsOn drivers.collect { tasks["${it}Test"] }
+    def list = drivers
+    if (ant.properties.os != "windows"){list = list.minus("ie")}
+    dependsOn list.collect { tasks["${it}Test"] }
     enabled = false
 }
 
@@ -109,7 +110,7 @@ def downloadDrivers() {
         }
         ant.unzip(src: zipFile.absolutePath, dest: zipFile.getParent())
 
-        if (it.os == 'unix' && it.browser == 'chrome')
+        if (ant.properties.os == 'unix' && new File('drivers/chrome/chromedriver').exists())
             ant.chmod(file:'drivers/chrome/chromedriver', perm:'755')
     }
 }

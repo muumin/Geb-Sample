@@ -24,7 +24,7 @@ class YahooGeb extends GebReportingSpec {
         firstResultLink.text() == firstLinkText
 
         when:
-        firstResultLinkClick
+        firstResultLink.click()
         then:
         at resultPage
 
