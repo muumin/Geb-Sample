@@ -1,44 +1,29 @@
-import static groovyx.net.http.ContentType.BINARY
-import groovyx.net.http.HTTPBuilder
-import static groovyx.net.http.Method.GET
-import org.apache.commons.io.FileUtils
-
 apply plugin: "eclipse"
 apply plugin: "idea"
 apply plugin: "groovy"
 
 defaultTasks 'clean', 'htmlunitTest'
 
+ext {
+    drivers = ["firefox", "chrome", "ie", "htmlunit"]
+    driverDir = "drivers"
+    driversUrl = ['http://selenium.googlecode.com/files/IEDriverServer_Win32_2.39.0.zip',
+        "http://chromedriver.storage.googleapis.com/2.9/chromedriver_mac32.zip",
+        "http://chromedriver.storage.googleapis.com/2.9/chromedriver_win32.zip"
+    ]
+}
+
 ant.condition(property: "os", value: "windows") { os(family: "windows") }
 ant.condition(property: "os", value: "unix") { os(family: "unix") }
 
-ext.drivers = ["firefox", "chrome", "ie", "htmlunit"]
-
-def enc = 'utf-8'
-[
-        compileJava,
-        compileGroovy,
-        compileTestJava,
-        compileTestGroovy,
-].each { it.options.encoding = enc }
-[
-        compileGroovy,
-        compileTestGroovy,
-].each { it.groovyOptions.encoding = enc }
+def defaultEncoding = 'UTF-8'
+tasks.withType(AbstractCompile) each { it.options.encoding = defaultEncoding }
+tasks.withType(GroovyCompile) each { it.groovyOptions.encoding = defaultEncoding }
 
 repositories {
     jcenter()
 }
 
-buildscript {
-    repositories {
-        jcenter()
-    }
-    dependencies {
-        classpath 'commons-io:commons-io:2.4'
-        classpath 'org.codehaus.groovy.modules.http-builder:http-builder:0.7.1'
-    }
-}
 dependencies {
     def seleniumVersion = '2.41.0'
     def gebVersion = "0.9.2"
@@ -54,9 +39,39 @@ dependencies {
     }
 }
 
+task downloadDrivers(type: DownloadDrivers) {
+    sourceUrls = driversUrl
+    target = file(driverDir)
+}
+
+class DownloadDrivers extends DefaultTask {
+    @Input
+    String[] sourceUrls
+
+    @OutputDirectory
+    File target
+
+    @TaskAction
+    void download() {
+        if (target.list().length != 0) return;
+
+        ant.get(dest: target) {
+            sourceUrls.each { url(url: it) }
+        }
+        ant.unzip(dest: target) {
+            fileset(dir: target) {
+                include(name: "*.zip")
+            }
+        }
+        if (ant.properties.os == 'unix')
+            ant.chmod(file: "${target}/chromedriver", perm: '755')
+    }
+}
+
 drivers.each { driver ->
-    task "${driver}Test"(type: Test) {
-        downloadDrivers()
+    task "${driver}Test"(type: Test, dependsOn: downloadDrivers) {
+        description "Runs ${driver} tests."
+
         reports {
             html.destination = reporting.file("$name/tests")
             junitXml.destination = file("$buildDir/test-results/$name")
@@ -65,15 +80,19 @@ drivers.each { driver ->
         systemProperty "geb.build.reportsDir", reporting.file("$name/geb")
         systemProperty "geb.env", driver
 
+        systemProperty "my.webdriver.dir", (driverDir)
+
         // If you wanted to set the baseUrl in your build…
         // systemProperty "geb.build.baseUrl", "http://myapp.com"
     }
 }
 
 test {
-    def list = drivers
-    if (ant.properties.os != "windows"){list = list.minus("ie")}
-    dependsOn list.collect { tasks["${it}Test"] }
+    def taskList = drivers.minus("htmlunit")
+    if (ant.properties.os == "unix") {
+        taskList = taskList.minus("ie")
+    }
+    dependsOn taskList.collect { tasks["${it}Test"] }
     enabled = false
 }
 
@@ -83,34 +102,3 @@ eclipse {
     pathVariables GRADLE_REPO: file(System.properties['user.home'] + '/.gradle/cache')
 }
 
-def downloadDrivers() {
-    if ( new File("drivers").exists()) return
-
-    [
-        [
-                url: "http://chromedriver.storage.googleapis.com/2.9/chromedriver_win32.zip",
-                zip: "drivers/chrome/chromedriver_win32.zip",
-        ],
-        [
-                url: "http://chromedriver.storage.googleapis.com/2.9/chromedriver_mac32.zip",
-                zip: "drivers/chrome/chromedriver_mac32.zip",
-        ],
-        [
-                url: "http://selenium.googlecode.com/files/IEDriverServer_Win32_2.30.1.zip",
-                zip: "drivers/ie/IEDriverServer_Win32_2.30.1.zip",
-        ]
-    ].each {
-        def zipFile = new File(it.zip)
-        mkdir(zipFile.getParent())
-        new HTTPBuilder().request(it.url,
-                GET, BINARY) { req ->
-            response.success = { resp, zip ->
-                FileUtils.copyInputStreamToFile(zip as InputStream, zipFile)
-            }
-        }
-        ant.unzip(src: zipFile.absolutePath, dest: zipFile.getParent())
-
-        if (ant.properties.os == 'unix' && new File('drivers/chrome/chromedriver').exists())
-            ant.chmod(file:'drivers/chrome/chromedriver', perm:'755')
-    }
-}

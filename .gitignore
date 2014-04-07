@@ -2,10 +2,10 @@
 \#*
 *.iml
 *.ipr
-drivers/
 geb-repo/
 .gradle/
 .idea/
 build/
+drivers/
 chromedriver.log
 classes/

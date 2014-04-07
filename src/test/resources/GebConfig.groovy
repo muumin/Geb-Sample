@@ -6,11 +6,7 @@ import org.openqa.selenium.remote.DesiredCapabilities
 import org.openqa.selenium.ie.InternetExplorerDriver
 import org.openqa.selenium.ie.InternetExplorerDriverService
 
-if (System.getProperty("os.name") ==~ /^Mac.*/) {
-    System.setProperty('webdriver.chrome.driver', 'drivers/chrome/chromedriver')
-} else if (System.getProperty("os.name") ==~ /^Windows.*/) {
-    System.setProperty('webdriver.chrome.driver', 'drivers/chrome/chromedriver.exe')
-}
+def driverDir = System.getProperty("my.webdriver.dir")?System.getProperty("my.webdriver.dir"):"drivers"
 
 // -Dgeb.build.reportsDir=geb-repo
 if (!System.getProperty("geb.build.reportsDir")) {
@@ -42,14 +38,18 @@ environments {
     }
 
     chrome {
-        driver = { new ChromeDriver() }
+        driver = {
+            def chromeDriver = "${driverDir}/chromedriver${System.getProperty("os.name") ==~ /^Windows.*/?".exe":""}"
+            System.setProperty('webdriver.chrome.driver', chromeDriver)
+            new ChromeDriver()
+        }
     }
     ie {
         driver = {
             def ieCapabilities = DesiredCapabilities.internetExplorer()
             ieCapabilities.setCapability(InternetExplorerDriver.INTRODUCE_FLAKINESS_BY_IGNORING_SECURITY_DOMAINS, true)
             InternetExplorerDriverService.Builder ies = new InternetExplorerDriverService.Builder()
-            ies.usingDriverExecutable(new File("drivers/ie/IEDriverServer.exe"))
+            ies.usingDriverExecutable(new File("${driverDir}/IEDriverServer.exe"))
             new InternetExplorerDriver(ies.build(), ieCapabilities)
         }
     }
