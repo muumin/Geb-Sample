@@ -11,6 +11,10 @@ yahooで複数回検索をするサンプル。
     gradlew firefoxTest
     gradlew chromeTest
 
+# ドライバ更新
+
+driversフォルダを削除して下さい。
+
 #参考サイト
 
 http://www.gebish.org/
@@ -21,8 +25,6 @@ http://hideoku.hatenablog.jp/
 
 #TODO
 
-IE11だと動かないです。
+IE立ち上がるようにはなったがタイムアウトエラーになります。
+原因不明。
 
-レジストリをいじれば動くらしいがダメでした。。
-
-https://code.google.com/p/selenium/wiki/InternetExplorerDriver#Required_Configuration

@@ -4,7 +4,6 @@ import org.openqa.selenium.firefox.FirefoxDriver
 import org.openqa.selenium.htmlunit.HtmlUnitDriver
 import org.openqa.selenium.remote.DesiredCapabilities
 import org.openqa.selenium.ie.InternetExplorerDriver
-import org.openqa.selenium.ie.InternetExplorerDriverService
 
 def driverDir = System.getProperty("my.webdriver.dir")?System.getProperty("my.webdriver.dir"):"drivers"
 
@@ -46,11 +45,11 @@ environments {
     }
     ie {
         driver = {
+            System.setProperty("webdriver.ie.driver", "${driverDir}/IEDriverServer.exe")
             def ieCapabilities = DesiredCapabilities.internetExplorer()
-            ieCapabilities.setCapability(InternetExplorerDriver.INTRODUCE_FLAKINESS_BY_IGNORING_SECURITY_DOMAINS, true)
-            InternetExplorerDriverService.Builder ies = new InternetExplorerDriverService.Builder()
-            ies.usingDriverExecutable(new File("${driverDir}/IEDriverServer.exe"))
-            new InternetExplorerDriver(ies.build(), ieCapabilities)
+//            ieCapabilities.setCapability(InternetExplorerDriver.INTRODUCE_FLAKINESS_BY_IGNORING_SECURITY_DOMAINS, true)
+            ieCapabilities.setCapability(InternetExplorerDriver.IGNORE_ZOOM_SETTING, true)
+            new InternetExplorerDriver(ieCapabilities)
         }
     }
 }
